@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Field Analyzer | ระบบวิเคราะห์สนามพลังงาน</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #0f3460;
+            --highlight: #e94560;
+            --text: #ffffff;
+            --text-secondary: #b8b8b8;
+            --success: #00b894;
+            --warning: #fdcb6e;
+            --danger: #e84393;
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --glass: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 50%, var(--accent) 100%);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--glass);
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo-icon {
+            font-size: 2.5em;
+            color: var(--highlight);
+        }
+
+        .logo-text h1 {
+            font-size: 1.8em;
+            font-weight: 300;
+            letter-spacing: 1px;
+        }
+
+        .logo-text p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .theme-toggle {
+            background: var(--glass);
+            border: none;
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--glass);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--glass);
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9em;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+        }
+
+        .status-dot.recording {
+            background: var(--highlight);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .compass-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+        }
+
+        .compass {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: var(--glass);
+            position: relative;
+            border: 2px solid var(--accent);
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .compass-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: left center;
+            width: 45%;
+            height: 4px;
+            background: var(--highlight);
+            border-radius: 2px;
+            transition: transform 0.2s ease;
+            z-index: 10;
+        }
+
+        .compass-needle::after {
+            content: '';
+            position: absolute;
+            right: -10px;
+            top: -5px;
+            width: 0;
+            height: 0;
+            border-left: 10px solid var(--highlight);
+            border-top: 7px solid transparent;
+            border-bottom: 7px solid transparent;
+        }
+
+        .compass-markings {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .compass-direction {
+            position: absolute;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: var(--text);
+        }
+
+        .north { top: 10px; left: 50%; transform: translateX(-50%); }
+        .east { top: 50%; right: 10px; transform: translateY(-50%); }
+        .south { bottom: 10px; left: 50%; transform: translateX(-50%); }
+        .west { top: 50%; left: 10px; transform: translateY(-50%); }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .sensor-card {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .sensor-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin: 10px 0;
+            color: var(--highlight);
+        }
+
+        .sensor-label {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+        }
+
+        .anomaly-detector {
+            margin-top: 30px;
+        }
+
+        .energy-level {
+            height: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .energy-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+            border-radius: 10px;
+            width: 30%;
+            transition: width 0.5s ease;
+        }
+
+        .energy-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        .anomaly-log {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            padding: 10px;
+            border-bottom: 1px solid var(--glass);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-time {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            min-width: 80px;
+        }
+
+        .log-message {
+            flex: 1;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--highlight);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #ff2e63;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: var(--glass);
+            color: var(--text);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .mode-selector {
+            display: flex;
+            background: var(--glass);
+            border-radius: 30px;
+            padding: 5px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 10px 20px;
+            text-align: center;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .mode-btn.active {
+            background: var(--highlight);
+        }
+
+        .anomaly-alert {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--danger);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transform: translateX(150%);
+            transition: transform 0.5s ease;
+            z-index: 1000;
+        }
+
+        .anomaly-alert.show {
+            transform: translateX(0);
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0;
+            margin-top: 50px;
+            border-top: 1px solid var(--glass);
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-satellite-dish"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Quantum Field Analyzer</h1>
+                    <p>Advanced Magnetic & Energy Anomaly Detection</p>
+                </div>
+            </div>
+            <button class="theme-toggle">
+                <i class="fas fa-palette"></i>
+                ธีม
+            </button>
+        </header>
+
+        <div class="mode-selector">
+            <div class="mode-btn active" data-mode="magnetic">โหมดตรวจจับสนามแม่เหล็ก</div>
+            <div class="mode-btn" data-mode="energy">โหมดตรวจจับพลังงานผิดปกติ</div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-compass"></i>
+                        ระบบนำทางด้วยเข็มทิศ
+                    </h2>
+                    <div class="status-indicator">
+                        <div class="status-dot recording"></div>
+                        <span>กำลังบันทึกข้อมูล</span>
+                    </div>
+                </div>
+                
+                <div class="compass-container">
+                    <div class="compass">
+                        <div class="compass-markings">
+                            <div class="compass-direction north">N</div>
+                            <div class="compass-direction east">E</div>
+                            <div class="compass-direction south">S</div>
+                            <div class="compass-direction west">W</div>
+                        </div>
+                        <div class="compass-needle" id="compassNeedle"></div>
+                    </div>
+                </div>
+                
+                <div class="sensor-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-label">ทิศทาง</div>
+                        <div class="sensor-value" id="direction">-</div>
+                        <div class="sensor-label">องศา</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-label">ความแรงสนาม</div>
+                        <div class="sensor-value" id="fieldStrength">-</div>
+                        <div class="sensor-label">ไมโครเทสลา</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">
+                        <i class="fas fa-wave-square"></i>
+                        ข้อมูลเซ็นเซอร์
+                    </h2>
+                    <div class="status-indicator">
+                        <div class="status-dot"></div>
+                        <span>พร้อมทำงาน</span>
+                    </div>
+                </div>
+                
+                <div class="sensor-grid">
+                    <div class="sensor-card">
+                        <div class="sensor-label">สนามแม่เหล็ก X</div>
+                        <div class="sensor-value" id="magX">-</div>
+                        <div class="sensor-label">µT</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-label">สนามแม่เหล็ก Y</div>
+                        <div class="sensor-value" id="magY">-</div>
+                        <div class="sensor-label">µT</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-label">สนามแม่เหล็ก Z</div>
+                        <div class="sensor-value" id="magZ">-</div>
+                        <div class="sensor-label">µT</div>
+                    </div>
+                    <div class="sensor-card">
+                        <div class="sensor-label">อุณหภูมิ</div>
+                        <div class="sensor-value" id="temperature">-</div>
+                        <div class="sensor-label">°C</div>
+                    </div>
+                </div>
+                
+                <div class="anomaly-detector">
+                    <h3 class="card-title">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        ระดับพลังงานผิดปกติ
+                    </h3>
+                    <div class="energy-level">
+                        <div class="energy-fill" id="energyFill"></div>
+                    </div>
+                    <div class="energy-markers">
+                        <span>ต่ำ</span>
+                        <span>ปานกลาง</span>
+                        <span>สูง</span>
+                        <span>อันตราย</span>
+                    </div>
+                    
+                    <div class="anomaly-log" id="anomalyLog">
+                        <div class="log-entry">
+                            <div class="log-time">14:23:05</div>
+                            <div class="log-message">ระบบพร้อมทำงาน</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn btn-primary" id="startBtn">
+                <i class="fas fa-play"></i>
+                เริ่มตรวจจับ
+            </button>
+            <button class="btn btn-secondary" id="stopBtn">
+                <i class="fas fa-stop"></i>
+                หยุดตรวจจับ
+            </button>
+            <button class="btn btn-secondary" id="calibrateBtn">
+                <i class="fas fa-sync"></i>
+                ตั้งค่าใหม่
+            </button>
+        </div>
+    </div>
+    
+    <div class="anomaly-alert" id="anomalyAlert">
+        <i class="fas fa-radiation-alt"></i>
+        <div>
+            <strong>ตรวจพบพลังงานผิดปกติ!</strong>
+            <div>ระดับ: <span id="alertLevel">สูง</span></div>
+        </div>
+    </div>
+    
+    <footer>
+        <p>Quantum Field Analyzer &copy; 2023 - สำหรับการศึกษาเท่านั้น</p>
+        <p>ระบบนี้ใช้สำหรับตรวจจับสนามแม่เหล็กและพลังงานผิดปกติในสภาพแวดล้อม</p>
+    </footer>
+
+    <script>
+        class QuantumFieldAnalyzer {
+            constructor() {
+                this.isDetecting = false;
+                this.mode = 'magnetic';
+                this.baseMagneticField = 25.0;
+                this.anomalyCount = 0;
+                this.logEntries = [];
+                
+                this.initializeEventListeners();
+                this.addLogEntry('ระบบพร้อมทำงาน', 'normal');
+            }
+
+            initializeEventListeners() {
+                document.getElementById('startBtn').addEventListener('click', () => this.startDetection());
+                document.getElementById('stopBtn').addEventListener('click', () => this.stopDetection());
+                document.getElementById('calibrateBtn').addEventListener('click', () => this.calibrate());
+                
+                // โหมดการทำงาน
+                document.querySelectorAll('.mode-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                        e.target.classList.add('active');
+                        this.mode = e.target.dataset.mode;
+                        this.addLogEntry(`เปลี่ยนเป็นโหมด: ${this.mode === 'magnetic' ? 'ตรวจจับสนามแม่เหล็ก' : 'ตรวจจับพลังงานผิดปกติ'}`, 'info');
+                    });
+                });
+            }
+
+            async startDetection() {
+                if (this.isDetecting) return;
+                
+                try {
+                    // ขออนุญาตใช้เซ็นเซอร์ (สำหรับอุปกรณ์ iOS)
+                    if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                        const permission = await DeviceOrientationEvent.requestPermission();
+                        if (permission !== 'granted') {
+                            this.addLogEntry('การอนุญาตใช้เซ็นเซอร์ถูกปฏิเสธ', 'warning');
+                            return;
+                        }
+                    }
+                    
+                    this.isDetecting = true;
+                    this.addLogEntry('เริ่มตรวจจับข้อมูล', 'info');
+                    
+                    // เริ่มตรวจจับการหมุน
+                    window.addEventListener('deviceorientation', (e) => this.handleDeviceOrientation(e));
+                    
+                    // เริ่มจำลองข้อมูลเซ็นเซอร์
+                    this.sensorInterval = setInterval(() => this.updateSensorData(), 500);
+                    
+                } catch (error) {
+                    console.error('Error starting detection:', error);
+                    this.addLogEntry('เกิดข้อผิดพลาดในการเริ่มตรวจจับ', 'error');
+                }
+            }
+
+            stopDetection() {
+                this.isDetecting = false;
+                clearInterval(this.sensorInterval);
+                window.removeEventListener('deviceorientation', this.handleDeviceOrientation);
+                this.addLogEntry('หยุดการตรวจจับ', 'info');
+            }
+
+            calibrate() {
+                this.baseMagneticField = 25.0;
+                this.anomalyCount = 0;
+                this.addLogEntry('ตั้งค่าเซ็นเซอร์ใหม่เรียบร้อย', 'info');
+            }
+
+            handleDeviceOrientation(event) {
+                if (!this.isDetecting) return;
+                
+                const alpha = event.alpha; // 0-360 degrees
+                
+                // อัพเดทเข็มทิศ
+                if (alpha !== null) {
+                    const compassNeedle = document.getElementById('compassNeedle');
+                    compassNeedle.style.transform = `translate(-50%, -50%) rotate(${alpha}deg)`;
+                    
+                    // แสดงทิศทาง
+                    const direction = this.getDirectionFromDegree(alpha);
+                    document.getElementById('direction').textContent = `${Math.round(alpha)}° ${direction}`;
+                }
+            }
+
+            getDirectionFromDegree(degree) {
+                const directions = ['เหนือ', 'ตะวันออกเฉียงเหนือ', 'ตะวันออก', 'ตะวันออกเฉียงใต้', 
+                                   'ใต้', 'ตะวันตกเฉียงใต้', 'ตะวันตก', 'ตะวันตกเฉียงเหนือ'];
+                const index = Math.round(degree / 45) % 8;
+                return directions[index];
+            }
+
+            updateSensorData() {
+                if (!this.isDetecting) return;
+                
+                // จำลองข้อมูลเซ็นเซอร์
+                const baseX = (Math.random() * 10 - 5);
+                const baseY = (Math.random() * 10 - 5);
+                const baseZ = (Math.random() * 10 - 5);
+                
+                // สุ่มความผิดปกติ
+                let anomalyFactor = 0;
+                if (Math.random() < 0.15) {
+                    anomalyFactor = (Math.random() * 3) + 1;
+                    this.detectAnomaly(anomalyFactor);
+                }
+                
+                const magX = (baseX + (Math.random() * anomalyFactor * 10)).toFixed(2);
+                const magY = (baseY + (Math.random() * anomalyFactor * 10)).toFixed(2);
+                const magZ = (baseZ + (Math.random() * anomalyFactor * 10)).toFixed(2);
+                
+                const total = Math.sqrt(magX * magX + magY * magY + magZ * magZ).toFixed(2);
+                const temp = (25 + (Math.random() * 5 - 2.5) + (anomalyFactor * 2)).toFixed(1);
+                
+                // อัพเดท UI
+                document.getElementById('magX').textContent = magX;
+                document.getElementById('magY').textContent = magY;
+                document.getElementById('magZ').textContent = magZ;
+                document.getElementById('fieldStrength').textContent = total;
+                document.getElementById('temperature').textContent = temp;
+                
+                // อัพเดทระดับพลังงาน
+                this.updateEnergyLevel(total, anomalyFactor);
+            }
+
+            updateEnergyLevel(fieldStrength, anomalyFactor) {
+                const energyFill = document.getElementById('energyFill');
+                let energyLevel = parseFloat(fieldStrength) / 100;
+                
+                if (anomalyFactor > 0) {
+                    energyLevel = Math.min(energyLevel + (anomalyFactor * 0.2), 1);
+                }
+                
+                energyFill.style.width = `${energyLevel * 100}%`;
+                
+                // เปลี่ยนสีตามระดับ
+                if (energyLevel > 0.8) {
+                    energyFill.style.background = 'linear-gradient(90deg, var(--success), var(--warning), var(--danger))';
+                } else if (energyLevel > 0.5) {
+                    energyFill.style.background = 'linear-gradient(90deg, var(--success), var(--warning))';
+                } else {
+                    energyFill.style.background = 'var(--success)';
+                }
+            }
+
+            detectAnomaly(anomalyFactor) {
+                this.anomalyCount++;
+                
+                let level, message;
+                if (anomalyFactor > 2.5) {
+                    level = 'danger';
+                    message = 'ตรวจพบพลังงานผิดปกติระดับอันตราย!';
+                    this.showAnomalyAlert('อันตราย');
+                } else if (anomalyFactor > 1.5) {
+                    level = 'warning';
+                    message = 'ตรวจพบพลังงานผิดปกติระดับสูง';
+                    this.showAnomalyAlert('สูง');
+                } else {
+                    level = 'info';
+                    message = 'ตรวจพบพลังงานผิดปกติระดับต่ำ';
+                }
+                
+                this.addLogEntry(message, level);
+            }
+
+            showAnomalyAlert(level) {
+                const alert = document.getElementById('anomalyAlert');
+                document.getElementById('alertLevel').textContent = level;
+                
+                alert.classList.add('show');
+                
+                setTimeout(() => {
+                    alert.classList.remove('show');
+                }, 5000);
+            }
+
+            addLogEntry(message, type = 'normal') {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString();
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = 'log-entry';
+                
+                let icon = 'info-circle';
+                if (type === 'warning') icon = 'exclamation-triangle';
+                if (type === 'danger') icon = 'radiation-alt';
+                if (type === 'error') icon = 'times-circle';
+                
+                logEntry.innerHTML = `
+                    <div class="log-time">${timeString}</div>
+                    <i class="fas fa-${icon}"></i>
+                    <div class="log-message">${message}</div>
+                `;
+                
+                const logContainer = document.getElementById('anomalyLog');
+                logContainer.prepend(logEntry);
+                
+                // จำกัดจำนวน log
+                if (logContainer.children.length > 10) {
+                    logContainer.removeChild(logContainer.lastChild);
+                }
+            }
+        }
+
+        // เริ่มต้นแอปพลิเคชันเมื่อโหลดหน้าเว็บ
+        document.addEventListener('DOMContentLoaded', () => {
+            new QuantumFieldAnalyzer();
+        });
+    </script>
+</body>
+</html>
